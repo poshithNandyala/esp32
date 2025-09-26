@@ -1,16 +1,14 @@
 /*
-  ESP32 BLE Typist — New simplified Code Mode + Play/Pause
-  - Fixed: Code Mode skipping leading ASCII spaces at the start of each line
-    * More robust: tracks "start-of-line" state (including start of text) and skips ASCII 0x20 spaces
-    * Tabs (\t) and other whitespace are left alone per original spec
-  - Added a Play/Pause toggle that pauses and resumes an in-progress typing job
-  - Pause is cooperative: the typing loop and coopDelay yield to HTTP so /pause and /stop work
-  - Everything else left intact; minimal additions only
+  ESP32 BLE Typist — Code Mode: robust leading-whitespace-strip + Play/Pause
+  - When Code Mode is ON, every line will have ALL leading whitespace removed
+    (spaces, tabs and other non-newline whitespace). CRLF/LF normalized to '\n'.
+  - Everything else (timing, typos, pause/stop, UI) left intact.
 */
 
 #include <WiFi.h>
 #include <WebServer.h>
 #include <BleKeyboard.h>
+#include <ctype.h>
 
 // BLE identity
 BleKeyboard bleKeyboard("Logitech K380", "Logitech", 100);
@@ -129,7 +127,7 @@ button.ghost{background:transparent;border:1px solid #22303a;color:#e6edf6}
       <select id="codemode"><option value="0">Off</option><option value="1">On</option></select>
     </div>
 
-    <div class="small">When Code Mode is ON the typist will skip ASCII space characters at the start of each line only. Tabs and all other characters are sent normally.</div>
+    <div class="small">When Code Mode is ON the typist will skip ALL leading whitespace at the start of each line (spaces, tabs, etc.). Newlines are preserved.</div>
   </div>
 </div>
 
@@ -240,7 +238,7 @@ String preprocessText(const String &in){
 // Small helper to cap jitter at very high WPM
 static inline float capJitterForWPM(int wpm, float jpct){ if(wpm >= 140 && jpct > 0.08f) return 0.08f; return jpct; }
 
-// Typing engine — simplified: codeMode only skips leading spaces after newlines
+// Typing engine — Code Mode: strip ALL leading non-newline whitespace per-line, then type
 void typeLikeHuman(const String &rawText){
   if(!bleKeyboard.isConnected()) return;
 
@@ -321,120 +319,131 @@ void typeLikeHuman(const String &rawText){
     return;
   }
 
-  // ---------------- Code Mode ON: only skip ASCII spaces after newlines ----------------
-  String text = rawText; // do not preprocess newlines here
-  int N = (int)text.length();
-  if(N == 0) return;
+  // ---------------- Code Mode ON: build filtered text that strips leading whitespace per-line
+  {
+    String raw = rawText;
+    int inN = (int)raw.length();
+    if(inN == 0) return;
 
-  typingActive = true;
-  paused = false; // ensure not paused when starting
-  typedChars = 0;
+    String text;
+    text.reserve(inN);
+    bool startOfLine = true;
 
-  int sessionWPM = clampInt(configuredWPM + random(-2,3), 10, 300);
-  float baseMs = ms_per_char_for_wpm(sessionWPM);
-  float jitterPct = clampInt(jitterStrengthPct,5,45) / 100.0f;
-  jitterPct = capJitterForWPM(sessionWPM, jitterPct);
-  bool strict = strictWPM;
+    for(int i = 0; i < inN; ++i){
+      char c = raw[i];
 
-  const float MIN_DELAY = 6.0f; const float CORR_LIMIT = 0.5f;
-  unsigned long startMs = millis();
-
-  // Track start-of-line state. Initialize to true so leading spaces at the very start are skipped.
-  bool startOfLine = true;
-
-  for(int i=0; i < N && typingActive; ++i){
-    if(!bleKeyboard.isConnected()) break;
-
-    // If paused, wait here (still service HTTP)
-    while(paused && typingActive){ server.handleClient(); delay(1); yield(); }
-
-    char c = text[i];
-
-    // If we're at the start of a line and encounter ASCII space (0x20), skip it.
-    // This also handles the very start of the input since startOfLine starts true.
-    if(startOfLine && c == ' '){
-      // advance typed count and continue without sending or adding delays
-      typedChars = i+1;
-      continue; // skip this space
-    }
-
-    // timing correction like before (moved after the quick skip to avoid skew)
-    unsigned long now = millis(); float elapsed = float(now - startMs);
-    int remaining = (N - i); if(remaining==0) remaining = 1;
-    float idealElapsed = float(i) * baseMs;
-    float error = elapsed - idealElapsed;
-    float correction = -error / float(remaining);
-    if(correction > baseMs*CORR_LIMIT) correction = baseMs*CORR_LIMIT;
-    if(correction < -baseMs*CORR_LIMIT) correction = -baseMs*CORR_LIMIT;
-
-    float nextDelay = baseMs + correction; if(nextDelay < MIN_DELAY) nextDelay = MIN_DELAY;
-    float jitterFactor = 1.0f + ((random(-1000,1001)/1000.0f) * jitterPct);
-    nextDelay *= jitterFactor; if(nextDelay < MIN_DELAY) nextDelay = MIN_DELAY;
-
-    // Newline handling: send newline and then skip ONLY ASCII spaces (0x20) at the start of next line
-    if(c == '\r' || c == '\n'){
-      // Detect CRLF and skip the LF in the input
-      bool isCRLF = false;
-      if(c == '\r' && (i+1) < N && text[i+1] == '\n'){
-        isCRLF = true;
+      // Handle CR and CRLF -> normalized to single '\n'
+      if(c == '\r'){
+        if((i + 1) < inN && raw[i+1] == '\n'){ ++i; } // skip LF after CR
+        text += '\n';
+        startOfLine = true;
+        continue;
+      }
+      // Handle LF
+      if(c == '\n'){
+        text += '\n';
+        startOfLine = true;
+        continue;
       }
 
-      // Send a single newline for portability
-      sendChar('\n');
-
-      if(isCRLF) { i++; }
-
-      // After a newline, mark startOfLine so subsequent ASCII spaces are skipped by the fast path above
-      startOfLine = true;
-
-      // small pause after newline
-      coopDelay((unsigned long)nextDelay);
-      typedChars = i+1;
-      continue;
-    }
-
-    // Normal character sending with existing typo/timing logic
-    bool isSpace = (c == ' ');
-    bool isPunct = (c=='.'||c==','||c=='!'||c=='?'||c==';'||c==':');
-
-    if(!strict && enableLongPauses && isSpace && (random(0,100) < longPausePercent)){
-      coopDelay(random(longPauseMinMs, longPauseMaxMs+1)); if(!typingActive) break;
-    }
-
-    bool alnum = ((c>='a'&&c<='z')||(c>='A'&&c<='Z')||(c>='0'&&c<='9'));
-    bool makeTypo = (!strict) && enableTypos && (random(0,100) < mistakePercent) && alnum;
-
-    if(makeTypo){
-      char wrong = char('a' + (random(0,25)));
-      if(isupper(c)) wrong = toupper(wrong);
-      sendChar(wrong);
-      coopDelay(max(60, (int)nextDelay)); if(!typingActive) break;
-      sendBackspace(); coopDelay(random(110,380)); if(!typingActive) break;
-      sendChar(c); coopDelay(clampInt((int)(nextDelay*0.5f)+random(20,120), 20, 800)); if(!typingActive) break;
-    } else {
-      sendChar(c);
-      int extra = 0;
-      if(!strict){
-        if(isSpace) extra += random(40,140);
-        if(extraPunctPause && isPunct) extra += random(80,220);
-        if(c=='\n' || c=='\r') extra += random(120,320);
+      // At this point c is NOT '\r' or '\n'.
+      // If we're at start of line and c is whitespace (space, tab, etc.), skip it.
+      // We purposely use isspace but we've already handled newline chars above.
+      if(startOfLine && isspace((unsigned char)c)){
+        // drop leading whitespace (space, tab, vertical-tab, form-feed, etc.)
+        continue;
       }
-      coopDelay((unsigned long)nextDelay + extra); if(!typingActive) break;
+
+      // Otherwise append and mark not at start-of-line
+      text += c;
+      startOfLine = false;
     }
 
-    // Any non-newline character means we're no longer at start-of-line
-    startOfLine = false;
+    // Now type the filtered text using your engine
+    int N = (int)text.length();
+    if(N == 0) return;
 
-    if(!strict && isSpace && thinkingSpaceChance>0 && (random(0,thinkingSpaceChance)==0)){
-      coopDelay(random(400,1000)); if(!typingActive) break;
+    typingActive = true;
+    paused = false;
+    typedChars = 0;
+
+    int sessionWPM = clampInt(configuredWPM + random(-2,3), 10, 300);
+    float baseMs = ms_per_char_for_wpm(sessionWPM);
+    float jitterPct = clampInt(jitterStrengthPct,5,45) / 100.0f;
+    jitterPct = capJitterForWPM(sessionWPM, jitterPct);
+    bool strict = strictWPM;
+
+    const float MIN_DELAY = 6.0f; const float CORR_LIMIT = 0.5f;
+    unsigned long startMs = millis();
+
+    for(int i=0; i < N && typingActive; ++i){
+      if(!bleKeyboard.isConnected()) break;
+
+      // If paused, wait here (still service HTTP)
+      while(paused && typingActive){ server.handleClient(); delay(1); yield(); }
+
+      unsigned long now = millis(); float elapsed = float(now - startMs);
+      int remaining = (N - i); if(remaining==0) remaining = 1;
+      float idealElapsed = float(i) * baseMs;
+      float error = elapsed - idealElapsed;
+      float correction = -error / float(remaining);
+      if(correction > baseMs*CORR_LIMIT) correction = baseMs*CORR_LIMIT;
+      if(correction < -baseMs*CORR_LIMIT) correction = -baseMs*CORR_LIMIT;
+
+      float nextDelay = baseMs + correction; if(nextDelay < MIN_DELAY) nextDelay = MIN_DELAY;
+      float jitterFactor = 1.0f + ((random(-1000,1001)/1000.0f) * jitterPct);
+      nextDelay *= jitterFactor; if(nextDelay < MIN_DELAY) nextDelay = MIN_DELAY;
+
+      char c = text[i];
+
+      // newline handling (we normalized CRLF -> '\n')
+      if(c == '\n'){
+        sendChar('\n');
+        coopDelay((unsigned long)nextDelay);
+        typedChars = i+1;
+        continue;
+      }
+
+      bool isSpace = (c == ' ');
+      bool isPunct = (c=='.'||c==','||c=='!'||c=='?'||c==';'||c==':');
+
+      if(!strict && enableLongPauses && isSpace && (random(0,100) < longPausePercent)){
+        coopDelay(random(longPauseMinMs, longPauseMaxMs+1)); if(!typingActive) break;
+      }
+
+      bool alnum = ((c>='a'&&c<='z')||(c>='A'&&c<='Z')||(c>='0'&&c<='9'));
+      bool makeTypo = (!strict) && enableTypos && (random(0,100) < mistakePercent) && alnum;
+
+      if(makeTypo){
+        char wrong = char('a' + (random(0,25)));
+        if(isupper(c)) wrong = toupper(wrong);
+        sendChar(wrong);
+        coopDelay(max(60, (int)nextDelay)); if(!typingActive) break;
+        sendBackspace(); coopDelay(random(110,380)); if(!typingActive) break;
+        sendChar(c); coopDelay(clampInt((int)(nextDelay*0.5f)+random(20,120), 20, 800)); if(!typingActive) break;
+      } else {
+        sendChar(c);
+        int extra = 0;
+        if(!strict){
+          if(isSpace) extra += random(40,140);
+          if(extraPunctPause && isPunct) extra += random(80,220);
+          if(c=='\n' || c=='\r') extra += random(120,320);
+        }
+        coopDelay((unsigned long)nextDelay + extra); if(!typingActive) break;
+      }
+
+      if(!strict && isSpace && thinkingSpaceChance>0 && (random(0,thinkingSpaceChance)==0)){
+        coopDelay(random(400,1000)); if(!typingActive) break;
+      }
+
+      typedChars = i+1;
     }
 
-    typedChars = i+1;
+    typingActive = false;
+    paused = false; // clear paused state when finished
+    coopDelay(120 + random(0,300));
+    return;
   }
-
-  typingActive = false;
-  paused = false; // clear paused state when finished
-  coopDelay(120 + random(0,300));
 }
 
 // HTTP Handlers
