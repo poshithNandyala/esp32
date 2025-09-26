@@ -1,5 +1,8 @@
 /*
   ESP32 BLE Typist — New simplified Code Mode + Play/Pause
+  - Fixed: Code Mode skipping leading ASCII spaces at the start of each line
+    * More robust: tracks "start-of-line" state (including start of text) and skips ASCII 0x20 spaces
+    * Tabs (\t) and other whitespace are left alone per original spec
   - Added a Play/Pause toggle that pauses and resumes an in-progress typing job
   - Pause is cooperative: the typing loop and coopDelay yield to HTTP so /pause and /stop work
   - Everything else left intact; minimal additions only
@@ -37,7 +40,7 @@ volatile bool codeMode = false;    // OFF by default
 
 // Runtime state
 volatile bool typingActive = false;
-volatile bool paused = false; // NEW: pause/resume state
+volatile bool paused = false; // pause/resume state
 volatile unsigned long typedChars = 0;
 
 // HTML UI
@@ -75,7 +78,7 @@ button.ghost{background:transparent;border:1px solid #22303a;color:#e6edf6}
       <button class="ghost" onclick="applyConfig()" title="Apply current settings">Apply settings</button>
       <button class="ghost" onclick="getStatus()" title="Refresh status from ESP32">Status</button>
       <button class="ghost" onclick="stopTyping()" title="Immediately stop an in-progress typing job">STOP</button>
-      <!-- NEW: Play/Pause button -->
+      <!-- Play/Pause button -->
       <button class="ghost" id="playpause" onclick="togglePause()" title="Pause or resume typing">Play/Pause</button>
     </div>
     <div class="row"><div class="status" id="status">Ready.</div></div>
@@ -163,7 +166,7 @@ async function stopTyping(){
   try{ const r = await fetch('/stop'); const t = await r.text(); document.getElementById('status').innerText = t; getStatus(); }catch(e){ document.getElementById('status').innerText = 'Stop error'; }
 }
 
-// NEW: toggle pause/resume
+// toggle pause/resume
 async function togglePause(){
   try{
     const r = await fetch('/pause');
@@ -336,13 +339,26 @@ void typeLikeHuman(const String &rawText){
   const float MIN_DELAY = 6.0f; const float CORR_LIMIT = 0.5f;
   unsigned long startMs = millis();
 
+  // Track start-of-line state. Initialize to true so leading spaces at the very start are skipped.
+  bool startOfLine = true;
+
   for(int i=0; i < N && typingActive; ++i){
     if(!bleKeyboard.isConnected()) break;
 
     // If paused, wait here (still service HTTP)
     while(paused && typingActive){ server.handleClient(); delay(1); yield(); }
 
-    // timing correction like before
+    char c = text[i];
+
+    // If we're at the start of a line and encounter ASCII space (0x20), skip it.
+    // This also handles the very start of the input since startOfLine starts true.
+    if(startOfLine && c == ' '){
+      // advance typed count and continue without sending or adding delays
+      typedChars = i+1;
+      continue; // skip this space
+    }
+
+    // timing correction like before (moved after the quick skip to avoid skew)
     unsigned long now = millis(); float elapsed = float(now - startMs);
     int remaining = (N - i); if(remaining==0) remaining = 1;
     float idealElapsed = float(i) * baseMs;
@@ -355,8 +371,6 @@ void typeLikeHuman(const String &rawText){
     float jitterFactor = 1.0f + ((random(-1000,1001)/1000.0f) * jitterPct);
     nextDelay *= jitterFactor; if(nextDelay < MIN_DELAY) nextDelay = MIN_DELAY;
 
-    char c = text[i];
-
     // Newline handling: send newline and then skip ONLY ASCII spaces (0x20) at the start of next line
     if(c == '\r' || c == '\n'){
       // Detect CRLF and skip the LF in the input
@@ -368,14 +382,12 @@ void typeLikeHuman(const String &rawText){
       // Send a single newline for portability
       sendChar('\n');
 
-      if(isCRLF) { i++; } // skip LF in source
+      if(isCRLF) { i++; }
 
-      // Skip only ASCII spaces on the following line; tabs are preserved
-      int j = i + 1;
-      while(j < N && text[j] == ' ') j++; // <-- only skip space (0x20)
-      i = j - 1; // loop will increment
+      // After a newline, mark startOfLine so subsequent ASCII spaces are skipped by the fast path above
+      startOfLine = true;
 
-      // small pause after newline (and skipped spaces)
+      // small pause after newline
       coopDelay((unsigned long)nextDelay);
       typedChars = i+1;
       continue;
@@ -410,6 +422,9 @@ void typeLikeHuman(const String &rawText){
       coopDelay((unsigned long)nextDelay + extra); if(!typingActive) break;
     }
 
+    // Any non-newline character means we're no longer at start-of-line
+    startOfLine = false;
+
     if(!strict && isSpace && thinkingSpaceChance>0 && (random(0,thinkingSpaceChance)==0)){
       coopDelay(random(400,1000)); if(!typingActive) break;
     }
@@ -438,7 +453,7 @@ void handleStatus(){
   s += "\"codemode\":" + String(codeMode?"true":"false") + ",";
   s += "\"typed\":" + String((unsigned long)typedChars) + ",";
   s += "\"running\":" + String(typingActive?"true":"false") + ",";
-  s += "\"paused\":" + String(paused?"true":"false") + ","; // NEW: paused state
+  s += "\"paused\":" + String(paused?"true":"false") + ",";
   s += "\"state\":\"" + String(typingActive?"Typing...":"Ready.") + "\"";
   s += "}";
   server.send(200, "application/json", s);
@@ -477,7 +492,7 @@ void handleType(){
 
 void handleStop(){ typingActive = false; paused = false; server.send(200, "text/plain", "Stop requested"); }
 
-// NEW: toggle pause/resume while typing (returns 409 if not typing)
+// toggle pause/resume while typing
 void handlePause(){
   if(!typingActive){ server.send(409, "text/plain", "Not typing"); return; }
   paused = !paused;
@@ -504,7 +519,7 @@ void setup(){
   server.on("/config", HTTP_GET, handleConfig);
   server.on("/type", HTTP_POST, handleType);
   server.on("/stop", HTTP_GET, handleStop);
-  server.on("/pause", HTTP_GET, handlePause); // NEW
+  server.on("/pause", HTTP_GET, handlePause); // pause/resume endpoint
 
   server.begin();
   Serial.println("Server ready. Open http://" + WiFi.softAPIP().toString());
