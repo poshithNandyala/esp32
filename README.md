@@ -32,23 +32,7 @@ This hardware was specifically engineered to generate the adversarial "bot" data
 
 ## 📡 How It Works (Workflow Animation)
 
-The following diagram illustrates the interaction between the devices:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Control as Control Laptop (You)
-    participant ESP as ESP32 Emulator
-    participant Target as Target Laptop
-
-    Note over ESP: ⚡ Power On ESP32
-    ESP->>Target: 🔵 Connects as BLE Keyboard
-    Control->>ESP: 🛜 Connects to ESP32 Wi-Fi AP
-    Control->>ESP: 📝 Sends Text Payload via Web UI
-    Note over ESP: 🧠 Calculates Biometric Stats<br/>(WPM, Mistakes, Pauses)
-    ESP->>Target: ⌨️ Injects Keystrokes (Human-like)
-    Note over Target: 📄 Text Appears Naturally
-```
+![Workflow Animation](workflow.svg)
 
 ## 🛠️ Hardware Requirements
 
