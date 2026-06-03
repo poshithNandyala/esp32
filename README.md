@@ -6,7 +6,7 @@
 [![Status](https://img.shields.io/badge/Status-Active-success.svg)]()
 
 <p align="center">
-  <img src="workflow.svg" width="100%" alt="Workflow Animation">
+  <img src="workflow.svg?v=2" width="100%" alt="Workflow Animation">
 </p>
 
 > **Developed as part of a Research Internship at the Indian Institute of Information Technology (IIIT), Lucknow.**
