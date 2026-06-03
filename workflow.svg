@@ -1,107 +1,183 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" width="100%" height="100%">
   <defs>
-    <!-- CSS for animations -->
+    <!-- CSS animations -->
     <style>
-      .laptop { fill: #2d3436; }
-      .screen { fill: #000000; }
-      .esp32 { fill: #0984e3; }
-      .text-light { fill: #dfe6e9; font-family: monospace; font-size: 14px; }
-      .text-title { fill: #ffffff; font-family: sans-serif; font-weight: bold; font-size: 18px; }
+      .bg { fill: #0d1117; }
+      .laptop-body { fill: #21262d; stroke: #30363d; stroke-width: 2; }
+      .screen-bg { fill: #010409; }
+      .text { font-family: 'Courier New', monospace; font-size: 14px; fill: #c9d1d9; }
+      .text-title { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 20px; fill: #58a6ff; font-weight: bold; }
+      .accent { fill: #58a6ff; }
+      .success { fill: #238636; }
+      .warning { fill: #d29922; }
       
-      /* Wi-Fi waves animation */
-      .wifi { opacity: 0; animation: pulse 2s infinite; stroke: #00b894; stroke-width: 3; fill: none; }
-      .w1 { animation-delay: 0s; }
-      .w2 { animation-delay: 0.3s; }
-      .w3 { animation-delay: 0.6s; }
+      /* Waves */
+      .wifi-wave { fill: none; stroke: #238636; stroke-width: 3; stroke-linecap: round; opacity: 0; animation: waveAnim 2s infinite; }
+      .wifi-1 { animation-delay: 0s; }
+      .wifi-2 { animation-delay: 0.3s; }
+      .wifi-3 { animation-delay: 0.6s; }
+      
+      .bt-wave { fill: none; stroke: #58a6ff; stroke-width: 3; stroke-linecap: round; opacity: 0; animation: waveAnim 2s infinite; }
+      .bt-1 { animation-delay: 1s; }
+      .bt-2 { animation-delay: 1.3s; }
+      .bt-3 { animation-delay: 1.6s; }
 
-      /* Bluetooth waves animation */
-      .bt { opacity: 0; animation: pulse 2s infinite; stroke: #0984e3; stroke-width: 3; fill: none; }
-      .b1 { animation-delay: 1s; }
-      .b2 { animation-delay: 1.3s; }
-      .b3 { animation-delay: 1.6s; }
-
-      @keyframes pulse {
-        0% { opacity: 0; transform: scale(0.8); }
-        50% { opacity: 1; transform: scale(1); }
-        100% { opacity: 0; transform: scale(1.2); }
+      @keyframes waveAnim {
+        0% { opacity: 0; transform: scale(0.8) translate(10px, 0); }
+        50% { opacity: 1; transform: scale(1) translate(0, 0); }
+        100% { opacity: 0; transform: scale(1.2) translate(-10px, 0); }
       }
 
-      /* Code typing animation */
-      .type1 { opacity: 0; animation: typeAnim 6s infinite; }
-      .type2 { opacity: 0; animation: typeAnim 6s infinite; animation-delay: 1s; }
-      .type3 { opacity: 0; animation: typeAnim 6s infinite; animation-delay: 2s; }
-      .type4 { opacity: 0; animation: typeAnim 6s infinite; animation-delay: 3s; }
-
-      @keyframes typeAnim {
-        0%, 10% { opacity: 0; }
-        15%, 100% { opacity: 1; }
-      }
+      /* Slider Animation */
+      .slider-thumb { animation: sliderMove 8s infinite; }
+      .slider-fill { animation: sliderFill 8s infinite; }
+      .wpm-slow { animation: slowWpm 8s infinite; }
+      .wpm-fast { opacity: 0; animation: fastWpm 8s infinite; }
       
-      /* ESP32 LED Blink */
-      .led { fill: #d63031; animation: blink 1s infinite; }
-      @keyframes blink { 0%, 100% { fill: #d63031; } 50% { fill: #ff7675; } }
+      @keyframes sliderMove {
+        0%, 20% { transform: translateX(0); }  /* Slow (at 40) */
+        30%, 70% { transform: translateX(100px); } /* Fast (at 140) */
+        80%, 100% { transform: translateX(0); } /* Slow */
+      }
+      @keyframes sliderFill {
+        0%, 20% { width: 20px; }
+        30%, 70% { width: 120px; }
+        80%, 100% { width: 20px; }
+      }
+      @keyframes slowWpm { 0%, 20% { opacity: 1; } 30%, 70% { opacity: 0; } 80%, 100% { opacity: 1; } }
+      @keyframes fastWpm { 0%, 20% { opacity: 0; } 30%, 70% { opacity: 1; } 80%, 100% { opacity: 0; } }
+
+      /* Typing Animation */
+      .cursor { animation: blink 1s infinite; fill: #58a6ff; }
+      @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
+      /* Code chunks (8s total cycle) */
+      .chunk1 { opacity: 0; animation: c1 8s infinite; }
+      @keyframes c1 { 0%, 6% { opacity: 0; } 6.1%, 100% { opacity: 1; } } /* 0.5s */
+      
+      .chunk2 { opacity: 0; animation: c2 8s infinite; }
+      @keyframes c2 { 0%, 20% { opacity: 0; } 20.1%, 100% { opacity: 1; } } /* 1.6s */
+      
+      .chunk3 { opacity: 0; animation: c3 8s infinite; }
+      @keyframes c3 { 0%, 35% { opacity: 0; } 35.1%, 100% { opacity: 1; } } /* 2.8s */
+      
+      .chunk4 { opacity: 0; animation: c4 8s infinite; }
+      @keyframes c4 { 0%, 38% { opacity: 0; } 38.1%, 100% { opacity: 1; } } /* 3.0s */
     </style>
+
+    <linearGradient id="metalGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#bdc3c7"/>
+      <stop offset="50%" stop-color="#ecf0f1"/>
+      <stop offset="100%" stop-color="#95a5a6"/>
+    </linearGradient>
   </defs>
 
   <!-- Background -->
-  <rect width="100%" height="100%" fill="#1e272e" rx="10"/>
+  <rect width="100%" height="100%" rx="15" class="bg"/>
 
-  <!-- Control Laptop -->
+  <!-- ================= CONTROL LAPTOP ================= -->
   <g transform="translate(50, 150)">
-    <rect x="0" y="0" width="140" height="90" rx="5" class="laptop"/>
-    <rect x="5" y="5" width="130" height="80" class="screen"/>
-    <rect x="-10" y="90" width="160" height="10" rx="3" fill="#636e72"/>
-    <text x="70" y="-15" text-anchor="middle" class="text-title">Control Laptop</text>
-    <text x="70" y="30" text-anchor="middle" class="text-light" fill="#00b894">Web UI (Wi-Fi)</text>
-    <text x="70" y="55" text-anchor="middle" class="text-light" fill="#ffeaa7">&gt; Send Payload</text>
-  </g>
-
-  <!-- Wi-Fi Signals (from Control to ESP32) -->
-  <g transform="translate(230, 195)">
-    <path d="M 0,0 Q 15,-15 30,0" class="wifi w1"/>
-    <path d="M -10,-10 Q 15,-35 40,-10" class="wifi w2"/>
-    <path d="M -20,-20 Q 15,-55 50,-20" class="wifi w3"/>
-    <text x="15" y="-60" text-anchor="middle" class="text-light" fill="#00b894">Wi-Fi</text>
-  </g>
-
-  <!-- ESP32 -->
-  <g transform="translate(350, 160)">
-    <rect x="0" y="0" width="100" height="70" rx="8" class="esp32"/>
-    <rect x="10" y="10" width="80" height="50" rx="4" fill="#2d3436"/>
-    <!-- Pins -->
-    <rect x="15" y="-5" width="6" height="5" fill="#b2bec3"/>
-    <rect x="35" y="-5" width="6" height="5" fill="#b2bec3"/>
-    <rect x="55" y="-5" width="6" height="5" fill="#b2bec3"/>
-    <rect x="75" y="-5" width="6" height="5" fill="#b2bec3"/>
-    <rect x="15" y="70" width="6" height="5" fill="#b2bec3"/>
-    <rect x="35" y="70" width="6" height="5" fill="#b2bec3"/>
-    <rect x="55" y="70" width="6" height="5" fill="#b2bec3"/>
-    <rect x="75" y="70" width="6" height="5" fill="#b2bec3"/>
+    <!-- Hardware -->
+    <rect x="0" y="0" width="220" height="140" rx="8" class="laptop-body"/>
+    <rect x="10" y="10" width="200" height="120" class="screen-bg"/>
+    <rect x="-15" y="140" width="250" height="12" rx="4" fill="#30363d"/>
     
-    <circle cx="20" cy="20" r="4" class="led"/>
-    <text x="50" y="95" text-anchor="middle" class="text-title">ESP32 Typist</text>
-    <text x="50" y="115" text-anchor="middle" class="text-light" fill="#fdcb6e" font-size="12">Biometric Engine</text>
-  </g>
+    <text x="110" y="-15" text-anchor="middle" class="text-title">Control (Laptop 1)</text>
 
-  <!-- Bluetooth Signals (from ESP32 to Target) -->
-  <g transform="translate(500, 195)">
-    <path d="M 0,0 Q 15,-15 30,0" class="bt b1"/>
-    <path d="M -10,-10 Q 15,-35 40,-10" class="bt b2"/>
-    <path d="M -20,-20 Q 15,-55 50,-20" class="bt b3"/>
-    <text x="15" y="-60" text-anchor="middle" class="text-light" fill="#0984e3">BLE Keyboard</text>
-  </g>
+    <!-- UI Elements -->
+    <text x="20" y="30" class="text" fill="#8b949e">Target Text:</text>
+    <rect x="20" y="40" width="180" height="40" rx="4" fill="#161b22" stroke="#30363d"/>
+    <text x="25" y="55" class="text accent" font-size="12">#include &lt;BLE.h&gt;</text>
+    <text x="25" y="70" class="text accent" font-size="12">ble.begin();</text>
 
-  <!-- Target Laptop -->
-  <g transform="translate(590, 150)">
-    <rect x="0" y="0" width="160" height="100" rx="5" class="laptop"/>
-    <rect x="5" y="5" width="150" height="90" class="screen"/>
-    <rect x="-10" y="100" width="180" height="10" rx="3" fill="#636e72"/>
-    <text x="80" y="-15" text-anchor="middle" class="text-title">Target Laptop</text>
+    <text x="20" y="100" class="text" fill="#8b949e">Speed:</text>
+    <text x="75" y="100" class="text warning wpm-slow">80 WPM (Slow)</text>
+    <text x="75" y="100" class="text warning wpm-fast" fill="#ff7b72">250 WPM (Fast!)</text>
     
-    <!-- Code typing animation -->
-    <text x="15" y="30" class="text-light type1" fill="#55efc4">#include &lt;BLE.h&gt;</text>
-    <text x="15" y="50" class="text-light type2" fill="#55efc4">void setup() {</text>
-    <text x="25" y="70" class="text-light type3" fill="#55efc4">ble.begin();</text>
-    <text x="15" y="90" class="text-light type4" fill="#55efc4">}</text>
+    <!-- Slider -->
+    <rect x="20" y="110" width="160" height="6" rx="3" fill="#30363d"/>
+    <rect x="20" y="110" width="20" height="6" rx="3" fill="#d29922" class="slider-fill"/>
+    <circle cx="40" cy="113" r="8" fill="#f0f6fc" class="slider-thumb"/>
+  </g>
+
+  <!-- ================= WI-FI SIGNALS ================= -->
+  <g transform="translate(290, 220)">
+    <path d="M 0,-15 Q 20,0 0,15" class="wifi-wave wifi-1"/>
+    <path d="M 10,-25 Q 35,0 10,25" class="wifi-wave wifi-2"/>
+    <path d="M 20,-35 Q 50,0 20,35" class="wifi-wave wifi-3"/>
+    <text x="25" y="-50" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#238636" font-weight="bold">Wi-Fi (Web)</text>
+  </g>
+
+  <!-- ================= ESP32 ================= -->
+  <g transform="translate(420, 110)">
+    <!-- ESP32 Vector Graphic representing a WROOM-32 module -->
+    <g transform="scale(1.2)">
+      <!-- Board Base -->
+      <rect x="10" y="10" width="100" height="150" fill="#2c3e50" rx="4" stroke="#34495e" stroke-width="2"/>
+      
+      <!-- PCB Traces / Details -->
+      <path d="M 15 150 L 105 150 M 15 140 L 105 140" stroke="#f39c12" stroke-width="1" opacity="0.3"/>
+      
+      <!-- Metallic RF Shield (the silver block) -->
+      <rect x="15" y="45" width="90" height="70" fill="url(#metalGrad)" stroke="#7f8c8d" stroke-width="1.5" rx="3"/>
+      <!-- Shield Details -->
+      <circle cx="25" cy="55" r="2" fill="#bdc3c7"/>
+      <circle cx="95" cy="55" r="2" fill="#bdc3c7"/>
+      <text x="60" y="75" text-anchor="middle" font-family="sans-serif" font-size="10" fill="#2c3e50" font-weight="bold">ESP-WROOM-32</text>
+      
+      <!-- PCB Antenna (zigzag) -->
+      <rect x="10" y="10" width="100" height="30" fill="#1a252f" rx="4"/>
+      <path d="M 20,35 L 20,20 L 40,20 L 40,35 L 50,35 L 50,20 L 70,20 L 70,35 L 80,35 L 80,20 L 100,20" fill="none" stroke="#f1c40f" stroke-width="2"/>
+      
+      <!-- Gold Pins (Left) -->
+      <g fill="#f1c40f">
+        <rect x="6" y="50" width="4" height="2"/> <rect x="6" y="55" width="4" height="2"/>
+        <rect x="6" y="60" width="4" height="2"/> <rect x="6" y="65" width="4" height="2"/>
+        <rect x="6" y="70" width="4" height="2"/> <rect x="6" y="75" width="4" height="2"/>
+        <rect x="6" y="80" width="4" height="2"/> <rect x="6" y="85" width="4" height="2"/>
+        <rect x="6" y="90" width="4" height="2"/> <rect x="6" y="95" width="4" height="2"/>
+        <rect x="6" y="100" width="4" height="2"/> <rect x="6" y="105" width="4" height="2"/>
+        <rect x="6" y="110" width="4" height="2"/> <rect x="6" y="115" width="4" height="2"/>
+        <rect x="6" y="120" width="4" height="2"/>
+      </g>
+      <!-- Gold Pins (Right) -->
+      <g fill="#f1c40f">
+        <rect x="110" y="50" width="4" height="2"/> <rect x="110" y="55" width="4" height="2"/>
+        <rect x="110" y="60" width="4" height="2"/> <rect x="110" y="65" width="4" height="2"/>
+        <rect x="110" y="70" width="4" height="2"/> <rect x="110" y="75" width="4" height="2"/>
+        <rect x="110" y="80" width="4" height="2"/> <rect x="110" y="85" width="4" height="2"/>
+        <rect x="110" y="90" width="4" height="2"/> <rect x="110" y="95" width="4" height="2"/>
+        <rect x="110" y="100" width="4" height="2"/> <rect x="110" y="105" width="4" height="2"/>
+        <rect x="110" y="110" width="4" height="2"/> <rect x="110" y="115" width="4" height="2"/>
+        <rect x="110" y="120" width="4" height="2"/>
+      </g>
+    </g>
+  </g>
+
+  <!-- ================= BLUETOOTH SIGNALS ================= -->
+  <g transform="translate(620, 220)">
+    <path d="M 0,-15 Q 20,0 0,15" class="bt-wave bt-1"/>
+    <path d="M 10,-25 Q 35,0 10,25" class="bt-wave bt-2"/>
+    <path d="M 20,-35 Q 50,0 20,35" class="bt-wave bt-3"/>
+    <text x="25" y="-50" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#58a6ff" font-weight="bold">BLE Keyboard</text>
+  </g>
+
+  <!-- ================= TARGET LAPTOP ================= -->
+  <g transform="translate(710, 150)">
+    <rect x="0" y="0" width="240" height="160" rx="8" class="laptop-body"/>
+    <rect x="10" y="10" width="220" height="140" class="screen-bg"/>
+    <rect x="-15" y="160" width="270" height="12" rx="4" fill="#30363d"/>
+    
+    <text x="120" y="-15" text-anchor="middle" class="text-title">Target (Laptop 2)</text>
+
+    <!-- Typing Output -->
+    <g transform="translate(20, 30)">
+      <text x="0" y="0" class="text success">
+        <tspan class="chunk1">#in</tspan><tspan class="chunk2">clude &lt;BLE.h&gt;</tspan>
+      </text>
+      <text x="0" y="25" class="text success">
+        <tspan class="chunk3">ble.</tspan><tspan class="chunk4">begin();</tspan><tspan class="cursor">_</tspan>
+      </text>
+    </g>
   </g>
 </svg>
