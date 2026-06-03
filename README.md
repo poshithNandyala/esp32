@@ -7,21 +7,14 @@
 
 > **Developed as part of a Research Internship at the Indian Institute of Information Technology (IIIT), Lucknow.**
 
-# 🛑🛑 STRICT LEGAL & ETHICAL DISCLAIMER 🛑🛑
-
-> [!CAUTION]
-> **ABSOLUTELY NO ONLINE ASSESSMENT SYSTEMS (OAS) OR CHEATING**
+> [!WARNING]
+> **STRICT LEGAL & ETHICAL DISCLAIMER**
 > 
 > This project and its source code are provided strictly for **educational, academic, and research purposes only**. 
 > 
-> **DO NOT** use this hardware or software for ANY unauthorized, malicious, or illegal activities. 
-> This includes, but is strictly not limited to:
-> - 🚫 Automating typing in Online Assessment Systems (OAS)
-> - 🚫 Academic dishonesty or cheating in online exams
-> - 🚫 Unauthorized credential stuffing
-> - 🚫 Bypassing security controls without explicit administrative consent
+> **DO NOT** use this hardware or software for any unauthorized, malicious, or illegal activities. Specifically, **any use of this tool for Online Assessment Systems (OAS), academic dishonesty, or cheating in online exams is strictly prohibited.**
 > 
-> **Any use of this tool for malicious purposes, especially academic cheating, is strictly prohibited.**
+> This also includes unauthorized credential stuffing or bypassing security controls without explicit administrative consent.
 
 ---
 
