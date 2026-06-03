@@ -5,6 +5,10 @@
 [![Language](https://img.shields.io/badge/Language-C++-00599C.svg)](https://isocpp.org/)
 [![Status](https://img.shields.io/badge/Status-Active-success.svg)]()
 
+<p align="center">
+  <img src="workflow.svg" width="100%" alt="Workflow Animation">
+</p>
+
 > **Developed as part of a Research Internship at the Indian Institute of Information Technology (IIIT), Lucknow.**
 
 > [!WARNING]
@@ -30,9 +34,6 @@ This hardware was specifically engineered to generate the adversarial "bot" data
 * **Cognitive Pauses:** Introduces long pause durations (>500ms) to simulate "thinking" intervals during free-form text entry.
 * **Plug-and-Play HID:** Acts as a standard USB keyboard on any target machine (Windows/Mac/Linux) without requiring custom drivers.
 
-## 📡 How It Works (Workflow Animation)
-
-![Workflow Animation](workflow.svg)
 
 ## 🛠️ Hardware Requirements
 
