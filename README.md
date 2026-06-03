@@ -7,6 +7,11 @@
 
 > **Developed as part of a Research Internship at the Indian Institute of Information Technology (IIIT), Lucknow.**
 
+> ⚠️ **LEGAL & ETHICAL DISCLAIMER:** 
+> This project and its source code are provided strictly for **educational, academic, and research purposes only**. Do not use this hardware or software for any unauthorized, malicious, or illegal activities. This includes, but is not limited to: automating typing in online exams for academic dishonesty, unauthorized credential stuffing, or bypassing security controls without explicit administrative consent. 
+
+---
+
 An advanced USB HID keyboard emulator built on the ESP32 microcontroller. Unlike standard Rubber Ducky scripts that inject payloads at maximum speed, this project synthesizes highly realistic, human-like typing patterns using statistical distributions to bypass basic liveness detection and heuristic security systems. 
 
 This hardware was specifically engineered to generate the adversarial "bot" dataset for the research publication: **"Human vs Bot: Detecting Automated Typing Patterns."**
