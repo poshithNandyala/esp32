@@ -30,6 +30,26 @@ This hardware was specifically engineered to generate the adversarial "bot" data
 * **Cognitive Pauses:** Introduces long pause durations (>500ms) to simulate "thinking" intervals during free-form text entry.
 * **Plug-and-Play HID:** Acts as a standard USB keyboard on any target machine (Windows/Mac/Linux) without requiring custom drivers.
 
+## 📡 How It Works (Workflow Animation)
+
+The following diagram illustrates the interaction between the devices:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Control as Control Laptop (You)
+    participant ESP as ESP32 Emulator
+    participant Target as Target Laptop
+
+    Note over ESP: ⚡ Power On ESP32
+    ESP->>Target: 🔵 Connects as BLE Keyboard
+    Control->>ESP: 🛜 Connects to ESP32 Wi-Fi AP
+    Control->>ESP: 📝 Sends Text Payload via Web UI
+    Note over ESP: 🧠 Calculates Biometric Stats<br/>(WPM, Mistakes, Pauses)
+    ESP->>Target: ⌨️ Injects Keystrokes (Human-like)
+    Note over Target: 📄 Text Appears Naturally
+```
+
 ## 🛠️ Hardware Requirements
 
 * **ESP32 Development Board** (Must support USB HID, e.g., ESP32-S2, ESP32-S3, or standard ESP32 with appropriate USB stack/firmware).
